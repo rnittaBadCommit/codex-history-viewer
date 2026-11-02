@@ -249,11 +249,11 @@
     "cfg.chatLongMessageFolding.labelAuto": "長文のみ折りたたむ",
     "cfg.chatLongMessageFolding.labelAlways": "常に折りたたむ",
     "cfg.chatUserLongMessageFolding": "履歴ビューで長い user メッセージを折りたたむ方法を選択します。",
-    "cfg.chatUserLongMessageFolding.enumOff": "現在の挙動を維持します。user メッセージは常に全文表示します。",
+    "cfg.chatUserLongMessageFolding.enumOff": "質問文は最初から全文を表示します。マウスやキーボードによる手動の折りたたみは利用できます。",
     "cfg.chatUserLongMessageFolding.enumAuto": "詳細を表示していないときだけ、長い user メッセージを折りたたみます。",
     "cfg.chatUserLongMessageFolding.enumAlways": "詳細を表示していないときは、対象の user メッセージを常に折りたたみます。",
     "cfg.chatAssistantLongMessageFolding": "履歴ビューで長い assistant メッセージを折りたたむ方法を選択します。",
-    "cfg.chatAssistantLongMessageFolding.enumOff": "現在の挙動を維持します。assistant メッセージは常に全文表示します。",
+    "cfg.chatAssistantLongMessageFolding.enumOff": "回答は最初から全文を表示します。マウスやキーボードによる手動の折りたたみは利用できます。",
     "cfg.chatAssistantLongMessageFolding.enumAuto": "詳細を表示していないときだけ、長い assistant メッセージを折りたたみます。",
     "cfg.chatAssistantLongMessageFolding.enumAlways": "詳細を表示していないときは、対象の assistant メッセージを常に折りたたみます。",
     "cfg.chatStickyUserPrompt": "セッションビューで現在のユーザー指示を上部へ固定します。開いているセッションタブは、再読み込みまたは開き直し後から有効です。",
@@ -494,7 +494,12 @@
     "ui.submenu.historyProjectScopeSubmenu": "プロジェクト範囲",
     "ui.submenu.historySourceSubmenu": "ソース",
     "ui.submenu.historyDisplayTargetSubmenu": "セッションの表示対象",
-    "ui.submenu.historyCompressionSubmenu": "圧縮状態"
+    "ui.submenu.historyCompressionSubmenu": "圧縮状態",
+    "cmd.toggleAnswerExpansion": "質問・回答を折りたたむ／展開する",
+    "cmd.collapseAnswer": "メッセージを折りたたむ",
+    "ui.command.collapseAnswer": "メッセージを折りたたむ",
+    "cmd.expandAnswer": "メッセージを展開する",
+    "ui.command.expandAnswer": "メッセージを展開する"
   },
   "runtime": {
     "settingsPanel.remoteCodex.section": "トラブルシューティング",

@@ -434,6 +434,11 @@
   let patchGroupNavMap = new Map();
   let currentTurnSummaryById = new Map();
   let expandedMessageIndexes = new Set();
+  let manuallyCollapsedMessageIndexes = new Set();
+  let selectedAnswerMessageIndex = null;
+  let answerContextRevision = 0;
+  let answerShortcutComposing = false;
+  let answerShortcutRepeat = false;
   let expandedClaudeProgressIds = new Set();
   let expandedStickyUserKeys = new Set();
   let collapsedTurnIds = new Set();
@@ -979,6 +984,29 @@
 
   window.addEventListener("keydown", handleMermaidPaneKeydown, true);
 
+  // VS Code forwards Webview keys to its keybinding service. The contributed
+  // command is the sole keyboard dispatcher so user remappings work without
+  // a second, hard-coded Ctrl+Space handler toggling the answer twice.
+  document.addEventListener("keydown", (event) => {
+    answerShortcutRepeat = event.repeat;
+    answerShortcutComposing = event.isComposing;
+  }, true);
+  document.addEventListener("compositionstart", () => { answerShortcutComposing = true; syncAnswerShortcutFocus(); });
+  document.addEventListener("compositionend", () => { answerShortcutComposing = false; syncAnswerShortcutFocus(); });
+  document.addEventListener("focusin", syncAnswerShortcutFocus);
+  document.addEventListener("focusout", () => queueMicrotask(syncAnswerShortcutFocus));
+  window.addEventListener("focus", syncAnswerShortcutFocus);
+  window.addEventListener("blur", () => {
+    answerShortcutRepeat = false;
+    vscode.postMessage({ type: "answerShortcutFocus", focused: false });
+  });
+  timelineEl.addEventListener("click", handleAnswerSelection);
+  // Cancel on mousedown, before Windows/Chromium starts middle-button autoscroll.
+  // Toggle once here; auxclick is only suppressed, including after a re-render.
+  timelineEl.addEventListener("mousedown", handleAnswerMiddleDown, true);
+  timelineEl.addEventListener("auxclick", handleAnswerAuxClick, true);
+  timelineEl.addEventListener("dblclick", handleAnswerDoubleClick);
+
   document.addEventListener("keydown", (event) => {
     if (handleMermaidPaneKeydown(event)) return;
     handleStickyUserKeyScrollIntent(event);
@@ -1021,6 +1049,10 @@
 
   window.addEventListener("message", (event) => {
     const msg = localization.receive(event.data);
+    if (msg.type === "answerExpansion") {
+      handleAnswerExpansionCommand(msg);
+      return;
+    }
     if (msg.type === "viewState") {
       const revision = Number(msg.revision);
       if (Number.isSafeInteger(revision) && revision >= 0) {
@@ -1289,6 +1321,7 @@
       const prevExpandedNote = expandedNote;
       const prevSelectedMessageIndex = selectedMessageIndex;
       const prevExpandedMessageIndexes = new Set(expandedMessageIndexes);
+      const prevManuallyCollapsedMessageIndexes = new Set(manuallyCollapsedMessageIndexes);
       const prevExpandedStickyUserKeys = new Set(expandedStickyUserKeys);
       const prevCollapsedTurnIds = new Set(collapsedTurnIds);
       const prevExpandedPatchEntries = new Set(expandedPatchEntries);
@@ -1428,6 +1461,11 @@
             ? revealTarget.messageIndex
           : null;
       expandedMessageIndexes = shouldPreserveUiState ? prevExpandedMessageIndexes : new Set();
+      manuallyCollapsedMessageIndexes = shouldPreserveUiState ? prevManuallyCollapsedMessageIndexes : new Set();
+      // A model update invalidates native menus captured before the update.
+      answerContextRevision += 1;
+      if (!shouldPreserveUiState) selectedAnswerMessageIndex = null;
+      syncAnswerShortcutFocus();
       const validProgressIds = new Set(model.items.filter((item) => item.type === "claudeProgress").map((item) => item.progressId));
       expandedClaudeProgressIds = new Set([...expandedClaudeProgressIds].filter((id) => validProgressIds.has(id)));
       expandedStickyUserKeys = shouldPreserveUiState ? prevExpandedStickyUserKeys : new Set();
@@ -7164,6 +7202,9 @@
   }
 
   function resetSessionScopedUiState() {
+    selectedAnswerMessageIndex = null;
+    manuallyCollapsedMessageIndexes = new Set();
+    syncAnswerShortcutFocus();
     cancelRenderAfterCurrent();
     resetPageSearchState();
     if (imagePreview || isImagePreviewOpen()) closeImagePreview();
@@ -9126,6 +9167,7 @@
       requestRenderAfterCurrent();
       return;
     }
+    const answerHadFocus = canUseAnswerShortcut();
     renderDepth += 1;
     try {
     closeBranchOccurrenceMenu();
@@ -9346,6 +9388,10 @@
     commitCurrentSessionDataRenderKey();
     } finally {
       renderDepth = Math.max(0, renderDepth - 1);
+      if (answerHadFocus) {
+        document.getElementById(`msg-${selectedAnswerMessageIndex}`)?.focus({ preventScroll: true });
+      }
+      syncAnswerShortcutFocus();
     }
   }
 
@@ -11617,6 +11663,7 @@
       : textToRender;
     const collapseState = resolveMessageCollapseState(item, role, collapseText);
     const body = el("div", { className: `messageBody messageBody-${role}` });
+    configureAnswerBody(bubble, body, item, collapseText, collapseState);
     if (collapseState.canCollapse && collapseState.collapsed) {
       body.classList.add("messageBody-collapsed", `messageBody-collapsed-${role}`);
     }
@@ -13320,6 +13367,9 @@
   }
 
   function resolveMessageCollapseState(item, role, text) {
+    if ((role === "assistant" || role === "user") && item && manuallyCollapsedMessageIndexes.has(item.messageIndex)) {
+      return { canCollapse: true, collapsed: !expandedMessageIndexes.has(item.messageIndex) };
+    }
     if (showDetails) return { canCollapse: false, collapsed: false };
     if (role !== "user" && role !== "assistant") return { canCollapse: false, collapsed: false };
     if (!item || typeof item.messageIndex !== "number") return { canCollapse: false, collapsed: false };
@@ -13357,18 +13407,131 @@
   }
 
   function toggleMessageExpansion(messageIndex, expand) {
-    if (typeof messageIndex !== "number") return;
+    if (!Number.isSafeInteger(messageIndex)) return;
+    const targetBefore = document.getElementById(`msg-${messageIndex}`);
+    if (!targetBefore) return;
+    const isAnswer = targetBefore.dataset.answerMessageIndex === String(messageIndex);
+    const root = getScrollRoot();
+    const offsetTop = Math.max(8, Math.min(
+      targetBefore.getBoundingClientRect().top - root.getBoundingClientRect().top,
+      Math.max(8, root.clientHeight - 100),
+    ));
+    const sessionPath = model?.fsPath;
+    const revision = answerContextRevision;
+    if (isAnswer) selectedAnswerMessageIndex = messageIndex;
     const changed = withPageSearchContentMutation(() => {
       const before = expandedMessageIndexes.has(messageIndex);
+      const wasManuallyCollapsed = manuallyCollapsedMessageIndexes.has(messageIndex);
+      if (isAnswer && !expand) manuallyCollapsedMessageIndexes.add(messageIndex);
+      else manuallyCollapsedMessageIndexes.delete(messageIndex);
       if (expand) expandedMessageIndexes.add(messageIndex);
       else expandedMessageIndexes.delete(messageIndex);
-      return before !== expandedMessageIndexes.has(messageIndex);
+      return before !== expandedMessageIndexes.has(messageIndex) || wasManuallyCollapsed !== manuallyCollapsedMessageIndexes.has(messageIndex);
     });
     if (!changed) return;
-    render();
-    if (typeof selectedMessageIndex === "number") restoreHighlight(selectedMessageIndex);
-    const target = document.getElementById(`msg-${messageIndex}`);
-    if (target) target.scrollIntoView({ block: "nearest" });
+    if (isAnswer) suppressStickyUserUntilUserScroll();
+    renderOrRequestAfterCurrent(() => {
+      if (model?.fsPath !== sessionPath || answerContextRevision !== revision) return;
+      if (typeof selectedMessageIndex === "number") restoreHighlight(selectedMessageIndex);
+      const target = document.getElementById(`msg-${messageIndex}`);
+      if (!target) return;
+      // Preserve an on-screen preview's offset. A deeply scrolled answer moves
+      // its preview to the viewport top; expansion keeps that same starting point.
+      root.scrollTop += target.getBoundingClientRect().top - root.getBoundingClientRect().top - offsetTop;
+      if (isAnswer) target.focus({ preventScroll: true });
+      syncAnswerShortcutFocus();
+      persistCurrentChatOpenPosition({ immediate: true });
+      persistRestorePosition({ immediate: true });
+    });
+  }
+
+  function resolveAnswerBody(target) {
+    const element = target instanceof Element ? target : target?.parentElement;
+    const body = element?.closest(".messageBody-assistant, .messageBody-user");
+    if (!body || !timelineEl.contains(body)) return null;
+    const bubble = body.closest(".bubble[data-answer-message-index]");
+    return bubble ? { body, bubble, messageIndex: Number(bubble.dataset.answerMessageIndex) } : null;
+  }
+
+  function configureAnswerBody(bubble, body, item, text, collapseState) {
+    if ((item.role !== "assistant" && item.role !== "user") || !Number.isSafeInteger(item.messageIndex) || !text.trim()) return;
+    bubble.dataset.answerMessageIndex = String(item.messageIndex);
+    bubble.tabIndex = -1;
+    bubble.classList.toggle("answerSelected", selectedAnswerMessageIndex === item.messageIndex);
+    body.dataset.vscodeContext = JSON.stringify({
+      webviewSection: "answerBody",
+      answerFsPath: model.fsPath,
+      answerRevision: answerContextRevision,
+      answerMessageIndex: item.messageIndex,
+      answerCollapsed: collapseState.collapsed,
+    });
+  }
+
+  function handleAnswerExpansionCommand(msg) {
+    if (msg.action === "toggle") {
+      if (!canUseAnswerShortcut() || answerShortcutComposing || answerShortcutRepeat) return;
+      const target = document.getElementById(`msg-${selectedAnswerMessageIndex}`);
+      const body = target?.querySelector(".messageBody-assistant, .messageBody-user");
+      if (body) toggleMessageExpansion(selectedAnswerMessageIndex, body.classList.contains("messageBody-collapsed"));
+    } else if ((msg.action === "collapse" || msg.action === "expand") &&
+        msg.context?.answerFsPath === model?.fsPath && msg.context?.answerRevision === answerContextRevision) {
+      const index = msg.context.answerMessageIndex;
+      const target = document.getElementById(`msg-${index}`);
+      if (target?.dataset.answerMessageIndex === String(index)) toggleMessageExpansion(index, msg.action === "expand");
+    }
+  }
+
+  function isAnswerInteractiveTarget(target) {
+    const element = target instanceof Element ? target : target?.parentElement;
+    return !!element?.closest("a, button, input, textarea, select, summary, [role='button'], [contenteditable='true']");
+  }
+
+  function handleAnswerSelection(event) {
+    if (event.button !== 0 || isAnswerInteractiveTarget(event.target)) return;
+    const answer = resolveAnswerBody(event.target);
+    selectedAnswerMessageIndex = answer ? answer.messageIndex : null;
+    for (const bubble of timelineEl.querySelectorAll(".answerSelected")) bubble.classList.remove("answerSelected");
+    if (answer) {
+      answer.bubble.classList.add("answerSelected");
+      answer.bubble.focus({ preventScroll: true });
+    }
+    syncAnswerShortcutFocus();
+  }
+
+  function handleAnswerMiddleDown(event) {
+    if (event.button !== 1 || isAnswerInteractiveTarget(event.target)) return;
+    const answer = resolveAnswerBody(event.target);
+    if (!answer) return;
+    event.preventDefault();
+    event.stopPropagation();
+    toggleMessageExpansion(answer.messageIndex, answer.body.classList.contains("messageBody-collapsed"));
+  }
+
+  function handleAnswerAuxClick(event) {
+    if (event.button === 1 && !isAnswerInteractiveTarget(event.target) && resolveAnswerBody(event.target)) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+  }
+
+  function handleAnswerDoubleClick(event) {
+    if (event.button !== 0 || isAnswerInteractiveTarget(event.target)) return;
+    const answer = resolveAnswerBody(event.target);
+    if (!answer?.body.classList.contains("messageBody-collapsed")) return;
+    event.preventDefault();
+    toggleMessageExpansion(answer.messageIndex, true);
+  }
+
+  function canUseAnswerShortcut() {
+    const active = document.activeElement;
+    return Number.isSafeInteger(selectedAnswerMessageIndex) && document.hasFocus() &&
+      !isTextInputElement(active) && !isAnswerInteractiveTarget(active) &&
+      active?.closest?.("[data-answer-message-index]")?.dataset.answerMessageIndex === String(selectedAnswerMessageIndex) &&
+      !active.closest("[inert]");
+  }
+
+  function syncAnswerShortcutFocus() {
+    vscode.postMessage({ type: "answerShortcutFocus", focused: canUseAnswerShortcut() && !answerShortcutComposing });
   }
 
   function renderPatchGroup(item, itemIndex, cardKey) {

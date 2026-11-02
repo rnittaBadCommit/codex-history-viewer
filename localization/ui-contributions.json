@@ -2531,6 +2531,44 @@
       "value": {
         "command": "codexHistoryViewer.ui.{locale}.historyMenuCompressionUncompressed"
       }
+    },
+    {
+      "expandLocales": false,
+      "value": {
+        "command": "codexHistoryViewer.toggleAnswerExpansion",
+        "title": "%cmd.toggleAnswerExpansion%",
+        "category": "%cmd.category%"
+      }
+    },
+    {
+      "expandLocales": false,
+      "value": {
+        "command": "codexHistoryViewer.collapseAnswer",
+        "title": "%cmd.collapseAnswer%",
+        "category": "%cmd.category%"
+      }
+    },
+    {
+      "expandLocales": true,
+      "titleKey": "ui.command.collapseAnswer",
+      "value": {
+        "command": "codexHistoryViewer.ui.{locale}.collapseAnswer"
+      }
+    },
+    {
+      "expandLocales": false,
+      "value": {
+        "command": "codexHistoryViewer.expandAnswer",
+        "title": "%cmd.expandAnswer%",
+        "category": "%cmd.category%"
+      }
+    },
+    {
+      "expandLocales": true,
+      "titleKey": "ui.command.expandAnswer",
+      "value": {
+        "command": "codexHistoryViewer.ui.{locale}.expandAnswer"
+      }
     }
   ],
   "submenus": [
@@ -6356,6 +6394,64 @@
         "when": "view == codexHistoryViewer.historyView && {localeCondition} && codexHistoryViewer.historyCompressionFilter != 'uncompressed'",
         "group": "7_historyCompression@3"
       }
+    },
+    {
+      "expandLocales": false,
+      "menu": "commandPalette",
+      "value": {
+        "command": "codexHistoryViewer.toggleAnswerExpansion",
+        "when": "false"
+      }
+    },
+    {
+      "expandLocales": false,
+      "menu": "commandPalette",
+      "value": {
+        "command": "codexHistoryViewer.collapseAnswer",
+        "when": "false"
+      }
+    },
+    {
+      "expandLocales": true,
+      "menu": "commandPalette",
+      "value": {
+        "command": "codexHistoryViewer.ui.{locale}.collapseAnswer",
+        "when": "false"
+      }
+    },
+    {
+      "expandLocales": true,
+      "menu": "webview/context",
+      "value": {
+        "command": "codexHistoryViewer.ui.{locale}.collapseAnswer",
+        "when": "webviewId == 'codexHistoryViewer.chat' && webviewSection == 'answerBody' && !answerCollapsed && {localeCondition}",
+        "group": "answer@1"
+      }
+    },
+    {
+      "expandLocales": false,
+      "menu": "commandPalette",
+      "value": {
+        "command": "codexHistoryViewer.expandAnswer",
+        "when": "false"
+      }
+    },
+    {
+      "expandLocales": true,
+      "menu": "commandPalette",
+      "value": {
+        "command": "codexHistoryViewer.ui.{locale}.expandAnswer",
+        "when": "false"
+      }
+    },
+    {
+      "expandLocales": true,
+      "menu": "webview/context",
+      "value": {
+        "command": "codexHistoryViewer.ui.{locale}.expandAnswer",
+        "when": "webviewId == 'codexHistoryViewer.chat' && webviewSection == 'answerBody' && answerCollapsed && {localeCondition}",
+        "group": "answer@1"
+      }
     }
   ],
   "aliases": [
@@ -7188,6 +7284,16 @@
       "expandLocales": true,
       "id": "codexHistoryViewer.ui.{locale}.undoLastAction",
       "target": "codexHistoryViewer.undoLastAction"
+    },
+    {
+      "expandLocales": true,
+      "id": "codexHistoryViewer.ui.{locale}.collapseAnswer",
+      "target": "codexHistoryViewer.collapseAnswer"
+    },
+    {
+      "expandLocales": true,
+      "id": "codexHistoryViewer.ui.{locale}.expandAnswer",
+      "target": "codexHistoryViewer.expandAnswer"
     }
   ]
 }

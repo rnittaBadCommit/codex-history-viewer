@@ -5241,6 +5241,11 @@ body.vscode-high-contrast-light .imagePreviewOverlay {
   overflow: hidden;
 }
 
+.bubble.answerSelected {
+  outline: 1px solid var(--vscode-focusBorder);
+  outline-offset: 2px;
+}
+
 .messageBody-collapsed-user {
   max-height: 240px;
 }

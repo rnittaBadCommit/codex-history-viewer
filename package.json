@@ -2448,6 +2448,37 @@
       {
         "command": "codexHistoryViewer.ui.en.historyMenuCompressionUncompressed",
         "title": "%generated.ui.en.command.historyMenuCompressionUncompressed%"
+      },
+      {
+        "command": "codexHistoryViewer.toggleAnswerExpansion",
+        "title": "%cmd.toggleAnswerExpansion%",
+        "category": "%cmd.category%"
+      },
+      {
+        "command": "codexHistoryViewer.collapseAnswer",
+        "title": "%cmd.collapseAnswer%",
+        "category": "%cmd.category%"
+      },
+      {
+        "command": "codexHistoryViewer.ui.ja.collapseAnswer",
+        "title": "%generated.ui.ja.command.collapseAnswer%"
+      },
+      {
+        "command": "codexHistoryViewer.ui.en.collapseAnswer",
+        "title": "%generated.ui.en.command.collapseAnswer%"
+      },
+      {
+        "command": "codexHistoryViewer.expandAnswer",
+        "title": "%cmd.expandAnswer%",
+        "category": "%cmd.category%"
+      },
+      {
+        "command": "codexHistoryViewer.ui.ja.expandAnswer",
+        "title": "%generated.ui.ja.command.expandAnswer%"
+      },
+      {
+        "command": "codexHistoryViewer.ui.en.expandAnswer",
+        "title": "%generated.ui.en.command.expandAnswer%"
       }
     ],
     "submenus": [
@@ -4252,6 +4283,34 @@
         {
           "command": "codexHistoryViewer.ui.en.historyMenuCompressionUncompressed",
           "when": "false"
+        },
+        {
+          "command": "codexHistoryViewer.toggleAnswerExpansion",
+          "when": "false"
+        },
+        {
+          "command": "codexHistoryViewer.collapseAnswer",
+          "when": "false"
+        },
+        {
+          "command": "codexHistoryViewer.ui.ja.collapseAnswer",
+          "when": "false"
+        },
+        {
+          "command": "codexHistoryViewer.ui.en.collapseAnswer",
+          "when": "false"
+        },
+        {
+          "command": "codexHistoryViewer.expandAnswer",
+          "when": "false"
+        },
+        {
+          "command": "codexHistoryViewer.ui.ja.expandAnswer",
+          "when": "false"
+        },
+        {
+          "command": "codexHistoryViewer.ui.en.expandAnswer",
+          "when": "false"
         }
       ],
       "codexHistoryViewer.sessionInfoSubmenu.ja": [
@@ -6028,6 +6087,28 @@
           "when": "view == codexHistoryViewer.historyView && (codexHistoryViewer.uiLang != 'ja') && codexHistoryViewer.historyCompressionFilter != 'uncompressed'",
           "group": "7_historyCompression@3"
         }
+      ],
+      "webview/context": [
+        {
+          "command": "codexHistoryViewer.ui.ja.collapseAnswer",
+          "when": "webviewId == 'codexHistoryViewer.chat' && webviewSection == 'answerBody' && !answerCollapsed && (codexHistoryViewer.uiLang == 'ja')",
+          "group": "answer@1"
+        },
+        {
+          "command": "codexHistoryViewer.ui.en.collapseAnswer",
+          "when": "webviewId == 'codexHistoryViewer.chat' && webviewSection == 'answerBody' && !answerCollapsed && (codexHistoryViewer.uiLang != 'ja')",
+          "group": "answer@1"
+        },
+        {
+          "command": "codexHistoryViewer.ui.ja.expandAnswer",
+          "when": "webviewId == 'codexHistoryViewer.chat' && webviewSection == 'answerBody' && answerCollapsed && (codexHistoryViewer.uiLang == 'ja')",
+          "group": "answer@1"
+        },
+        {
+          "command": "codexHistoryViewer.ui.en.expandAnswer",
+          "when": "webviewId == 'codexHistoryViewer.chat' && webviewSection == 'answerBody' && answerCollapsed && (codexHistoryViewer.uiLang != 'ja')",
+          "group": "answer@1"
+        }
       ]
     },
     "configuration": {
@@ -6725,7 +6806,15 @@
           "description": "%cfg.claudeNativeBookmarksEnabled%"
         }
       }
-    }
+    },
+    "keybindings": [
+      {
+        "command": "codexHistoryViewer.toggleAnswerExpansion",
+        "key": "ctrl+space",
+        "mac": "ctrl+space",
+        "when": "activeWebviewPanelId == 'codexHistoryViewer.chat' && codexHistoryViewer.answerFocus"
+      }
+    ]
   },
   "scripts": {
     "vscode:prepublish": "npm run -s generate:l10n && npm run -s check:l10n && npm run check:renderer && npm run check:katex && npm run compile",
@@ -6742,7 +6831,8 @@
     "sync:katex": "node scripts/sync-katex-vendor.mjs --write",
     "typecheck": "npm run -s generate:l10n && npm run -s check:l10n && tsc -p . --noEmit",
     "build:zstd": "node scripts/build-zstd.mjs",
-    "generate:l10n": "node scripts/generate-localization.mjs --write"
+    "generate:l10n": "node scripts/generate-localization.mjs --write",
+    "test": "node --test --test-isolation=none scripts/tests/*.test.cjs"
   },
   "dependencies": {
     "@hpcc-js/wasm-zstd": "1.16.1",

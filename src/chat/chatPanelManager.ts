@@ -343,6 +343,7 @@ export class ChatPanelManager implements vscode.Disposable {
   private readonly stateByPanel = new WeakMap<vscode.WebviewPanel, ChatPanelState>();
   private readonly bookmarkTargetsByPanel = new WeakMap<vscode.WebviewPanel, Map<string, BookmarkTarget>>();
   private readonly readyByPanel = new WeakMap<vscode.WebviewPanel, boolean>();
+  private readonly answerShortcutFocusByPanel = new WeakMap<vscode.WebviewPanel, boolean>();
   private readonly imageDataByPanel = new WeakMap<vscode.WebviewPanel, Map<string, SaveableChatImage>>();
   private readonly documentDataByPanel = new WeakMap<vscode.WebviewPanel, Map<string, SaveableChatDocument>>();
   private readonly sentFileTargetsByPanel = new WeakMap<vscode.WebviewPanel, Map<string, string>>();
@@ -1371,6 +1372,26 @@ export class ChatPanelManager implements vscode.Disposable {
     };
   }
 
+  private publishAnswerShortcutFocus(): void {
+    const focused = this.getOpenPanels().some(panel =>
+      panel.active && this.answerShortcutFocusByPanel.get(panel) === true);
+    void vscode.commands.executeCommand("setContext", "codexHistoryViewer.answerFocus", focused);
+  }
+
+  public changeAnswerExpansion(action: "toggle" | "collapse" | "expand", context?: unknown): void {
+    const panel = this.getOpenPanels().find(candidate => candidate.active);
+    if (!panel || !this.readyByPanel.get(panel)) return;
+    if (action === "toggle") {
+      if (!this.answerShortcutFocusByPanel.get(panel)) return;
+    } else {
+      if (!context || typeof context !== "object") return;
+      const target = context as Record<string, unknown>;
+      if (target.answerFsPath !== this.stateByPanel.get(panel)?.fsPath ||
+          !Number.isSafeInteger(target.answerMessageIndex) || !Number.isSafeInteger(target.answerRevision)) return;
+    }
+    void panel.webview.postMessage({ type: "answerExpansion", action, context });
+  }
+
   private initializePanel(panel: vscode.WebviewPanel): void {
     panel.webview.options = this.buildWebviewOptions();
     panel.webview.html = this.buildHtml(panel.webview);
@@ -1382,6 +1403,7 @@ export class ChatPanelManager implements vscode.Disposable {
       });
     });
     panel.onDidChangeViewState(() => {
+      this.publishAnswerShortcutFocus();
       this.markPanelActive(panel);
       this.publishViewState(panel);
       const state = this.stateByPanel.get(panel);
@@ -1398,6 +1420,8 @@ export class ChatPanelManager implements vscode.Disposable {
       this.notifyAutoRefreshConsumerVisibilityChanged();
     });
     panel.onDidDispose(() => {
+      this.answerShortcutFocusByPanel.delete(panel);
+      this.publishAnswerShortcutFocus();
       this.cancelBranchNavigation(panel);
       this.stateByPanel.delete(panel);
       this.readyByPanel.delete(panel);
@@ -1613,6 +1637,11 @@ export class ChatPanelManager implements vscode.Disposable {
     if (!state) return;
 
     const type = typeof msg?.type === "string" ? msg.type : "";
+    if (type === "answerShortcutFocus") {
+      this.answerShortcutFocusByPanel.set(panel, msg.focused === true);
+      this.publishAnswerShortcutFocus();
+      return;
+    }
     if (type === "setTabMode") {
       const mode = msg.mode;
       const retention = this.buildTabModeState(panel);
