@@ -249,11 +249,11 @@
     "cfg.chatLongMessageFolding.labelAuto": "Collapse long messages",
     "cfg.chatLongMessageFolding.labelAlways": "Always collapse",
     "cfg.chatUserLongMessageFolding": "Choose how long user messages are collapsed in the history view.",
-    "cfg.chatUserLongMessageFolding.enumOff": "Keep the current behavior. User messages are always fully expanded.",
+    "cfg.chatUserLongMessageFolding.enumOff": "Keep user questions expanded initially. Explicit mouse and keyboard folding is still available.",
     "cfg.chatUserLongMessageFolding.enumAuto": "Collapse only long user messages when details are hidden.",
     "cfg.chatUserLongMessageFolding.enumAlways": "Always start eligible user messages collapsed when details are hidden.",
     "cfg.chatAssistantLongMessageFolding": "Choose how long assistant messages are collapsed in the history view.",
-    "cfg.chatAssistantLongMessageFolding.enumOff": "Keep the current behavior. Assistant messages are always fully expanded.",
+    "cfg.chatAssistantLongMessageFolding.enumOff": "Keep assistant messages expanded initially. Explicit mouse and keyboard folding is still available.",
     "cfg.chatAssistantLongMessageFolding.enumAuto": "Collapse only long assistant messages when details are hidden.",
     "cfg.chatAssistantLongMessageFolding.enumAlways": "Always start eligible assistant messages collapsed when details are hidden.",
     "cfg.chatStickyUserPrompt": "Pin the current user prompt at the top of the session view. Reload or reopen existing session tabs to apply the change.",
@@ -494,7 +494,12 @@
     "ui.submenu.historyProjectScopeSubmenu": "Project Scope",
     "ui.submenu.historySourceSubmenu": "Source",
     "ui.submenu.historyDisplayTargetSubmenu": "Session Display Target",
-    "ui.submenu.historyCompressionSubmenu": "Compression State"
+    "ui.submenu.historyCompressionSubmenu": "Compression State",
+    "cmd.toggleAnswerExpansion": "Toggle Question / Answer Expansion",
+    "cmd.collapseAnswer": "Collapse Message",
+    "ui.command.collapseAnswer": "Collapse Message",
+    "cmd.expandAnswer": "Expand Message",
+    "ui.command.expandAnswer": "Expand Message"
   },
   "runtime": {
     "settingsPanel.remoteCodex.section": "Troubleshooting",

@@ -135,6 +135,35 @@ Restoring a long Codex history also loads its referenced earlier history when av
 
 The session timeline can keep the current user prompt visible at the top while you scroll. Codex memory citation information recorded for intermediate and final responses is rendered as a collapsible section instead of being left as raw metadata in the message body. Session runtime context and local-command output are likewise shown as collapsed cards instead of raw user messages.
 
+## Question and answer folding controls / 質問・回答の開閉
+
+You can operate a user question or assistant answer from anywhere in its text, including headings, tables, and code:
+
+| Action | Expanded answer | Collapsed preview |
+| --- | --- | --- |
+| Middle mouse button | Collapse | Expand |
+| Right-click menu | **Collapse Message** | **Expand Message** |
+| Left-click, then **Ctrl+Space** | Collapse | Expand |
+| Double-click | Normal text selection | Expand |
+
+The selected answer has a subtle outline. These controls also work when `codexHistoryViewer.chat.assistantLongMessageFolding` is `off`, and also apply to user questions when `codexHistoryViewer.chat.userLongMessageFolding` is `off`. Tool logs and entire turns are excluded. Middle-clicking links and action buttons keeps their existing behavior. Manual state survives updates that preserve session UI state; fresh opens and session switches reset it.
+
+To change the shortcut, open VS Code **Preferences: Open Keyboard Shortcuts**, search for **Toggle Question / Answer Expansion** (command ID `codexHistoryViewer.toggleAnswerExpansion`), and change its binding. The default is **Ctrl+Space** on all platforms. Keep the default condition when editing `keybindings.json`, for example:
+
+```json
+{
+  "key": "ctrl+shift+space",
+  "command": "codexHistoryViewer.toggleAnswerExpansion",
+  "when": "activeWebviewPanelId == 'codexHistoryViewer.chat' && codexHistoryViewer.answerFocus"
+}
+```
+
+The shortcut is enabled while a selected answer has focus. Search fields, editable controls, composition input, and code editors do not trigger folding. If an OS input method reserves Ctrl+Space, choose another binding. Keyboard dispatch uses VS Code's keybinding service; there is no independent hard-coded Webview shortcut. Right-click actions use the [VS Code Webview context-menu API](https://code.visualstudio.com/api/extension-guides/webview#context-menus), retaining its default copy operations.
+
+日本語: 質問・回答本文のどこでもホイールクリックすると折りたたみ／展開できます。折りたたみ中のプレビューはダブルクリックでも展開できます。右クリックの「メッセージを折りたたむ」「メッセージを展開する」も利用できます。左クリックで選択した回答は **Ctrl+Space** で開閉します。キーの変更は VS Code の「キーボード ショートカット」で `codexHistoryViewer.toggleAnswerExpansion` を検索してください。変更時は上の `when` 条件を維持してください。自動折りたたみが `off` でも手動操作できます。
+
+See [validation and manual checks](docs/answer-controls-validation.md) for test coverage and platform checks.
+
 ## Attachments and References
 
 The Session Viewer keeps attachments and file references out of the message body and renders them as cards instead.

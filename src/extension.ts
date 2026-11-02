@@ -564,6 +564,11 @@ async function activateExtension(context: vscode.ExtensionContext, startup: View
   );
   const settingsPanel = new SettingsPanelManager(context);
   chatPanels.setSearchHistoryPeerRefresh(() => fileChangeHistoryPanels.refreshSearchHistoryCandidates());
+  context.subscriptions.push(
+    vscode.commands.registerCommand("codexHistoryViewer.toggleAnswerExpansion", () => chatPanels.changeAnswerExpansion("toggle")),
+    vscode.commands.registerCommand("codexHistoryViewer.collapseAnswer", (target?: unknown) => chatPanels.changeAnswerExpansion("collapse", target)),
+    vscode.commands.registerCommand("codexHistoryViewer.expandAnswer", (target?: unknown) => chatPanels.changeAnswerExpansion("expand", target)),
+  );
   if (config.webviewRestoreAfterReload) {
     chatPanels.registerSerializer(context.subscriptions);
     fileChangeHistoryPanels.registerSerializer(context.subscriptions);
